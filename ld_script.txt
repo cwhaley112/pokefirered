@@ -61,6 +61,7 @@ SECTIONS {
         src/multiboot.o(.text);
         src/main_menu.o(.text);
         src/battle_controllers.o(.text);
+        src/party_randomizer.o(.text);
         src/decompress.o(.text);
         src/battle_bg.o(.text);
         src/battle_main.o(.text);
@@ -345,6 +346,7 @@ SECTIONS {
         *libgcc.a:_divsi3.o(.text);
         *libgcc.a:_dvmd_tls.o(.text);
         *libgcc.a:_fixunsdfsi.o(.text);
+        *libgcc.a:_fixunssfsi.o(.text);
         *libgcc.a:_modsi3.o(.text);
         *libgcc.a:_muldi3.o(.text);
         *libgcc.a:_udivdi3.o(.text);

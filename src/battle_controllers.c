@@ -14,6 +14,8 @@
 #include "util.h"
 #include "constants/abilities.h"
 #include "constants/battle.h"
+#include "party_randomizer.c"
+#include "pokemon.h"
 
 static EWRAM_DATA u8 sLinkSendTaskId = 0;
 static EWRAM_DATA u8 sLinkReceiveTaskId = 0;
@@ -58,6 +60,7 @@ void SetUpBattleVars(void)
     ClearBattleAnimationVars();
     ClearBattleMonForms();
     BattleAI_HandleItemUseBeforeAISetup();
+    rndParty();
     gUnknown_2022B54 = 0;
     gUnknown_2023DDC = 0;
 }
