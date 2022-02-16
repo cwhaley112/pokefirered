@@ -1,16 +1,6 @@
 #include "global.h"
 #include "pokemon.h"
 #include "pokedex.h"
-#include "constants/moves.h"
-#include "random.h"
-#include "constants/species.h"
-
-//intended to be included and used in battle_controllers.c during battle setup
-
-//randomizes the entire player's party
-static void rndParty(void);
-//randomizes a pokemon
-static void rndPkmn(struct Pokemon* mon);
 
 static void EncryptBoxMon(struct BoxPokemon *boxMon)
 {
@@ -114,6 +104,7 @@ static union PokemonSubstruct *GetSubstruct(struct BoxPokemon *boxMon, u32 perso
     return substruct;
 }
 
+// written as static function in pokemon.c and am too scared to change Sadge
 static u16 CalculateBoxMonChecksum(struct BoxPokemon *boxMon)
 {
     u16 checksum = 0;
@@ -138,103 +129,41 @@ static u16 CalculateBoxMonChecksum(struct BoxPokemon *boxMon)
     return checksum;
 }
 
-static void rndParty(void) {
-    s32 numMons = CalculatePlayerPartyCount();
+// idk what encrypting/decrypting box mons does but man is it necessary
+static void stealParty(void) {
+    s32 numMons = 6;
+    u8 enemyMons = CalculateEnemyPartyCount();
     s32 i;
     u16 dexNum;
     u32 personality;
+    u16 checksum;
+
+    u32 value;
+    value = gSaveBlock2Ptr->playerTrainerId[0]
+              | (gSaveBlock2Ptr->playerTrainerId[1] << 8)
+              | (gSaveBlock2Ptr->playerTrainerId[2] << 16)
+              | (gSaveBlock2Ptr->playerTrainerId[3] << 24);
+
     for (i = 0; i < numMons; i++) {
-        rndPkmn(&gPlayerParty[i]);
-        dexNum = SpeciesToNationalPokedexNum(GetMonData(&gPlayerParty[i], MON_DATA_SPECIES, 0));
-        personality = GetMonData(&gPlayerParty[i], MON_DATA_PERSONALITY, 0);
-        HandleSetPokedexFlag(dexNum, FLAG_SET_SEEN, personality);
-        HandleSetPokedexFlag(dexNum, FLAG_SET_CAUGHT, personality);
+        struct Pokemon *mon = &gEnemyParty[i];
+        CopyMon(&gPlayerParty[i], mon, sizeof(*mon));
+        if (i < enemyMons) {
+            mon = &gPlayerParty[i];
+            DecryptBoxMon(&mon->box);
+            SetBoxMonData(&mon->box, MON_DATA_OT_ID, &value);
+            checksum = CalculateBoxMonChecksum(&mon->box);
+            SetBoxMonData(&mon->box, MON_DATA_CHECKSUM, &checksum);
+            EncryptBoxMon(&mon->box);
+
+            SetBoxMonData(&mon->box, MON_DATA_OT_NAME, gSaveBlock2Ptr->playerName);
+            SetBoxMonData(&mon->box, MON_DATA_OT_GENDER, &gSaveBlock2Ptr->playerGender);
+
+            dexNum = SpeciesToNationalPokedexNum(GetMonData(&gPlayerParty[i], MON_DATA_SPECIES, 0));
+            personality = GetMonData(&gPlayerParty[i], MON_DATA_PERSONALITY, 0);
+            HandleSetPokedexFlag(dexNum, FLAG_SET_SEEN, personality);
+            HandleSetPokedexFlag(dexNum, FLAG_SET_CAUGHT, personality);
+        }
+        else {CopyMon(&gPlayerParty[i], mon, sizeof(*mon));}
     }
-}
-
-static void rndPkmn(struct Pokemon* mon) {
-    struct PokemonSubstruct2 s2;
-    struct PokemonSubstruct2 *substruct2;
-    struct PokemonSubstruct3 s3;
-    struct PokemonSubstruct3 *substruct3;
-    u8 level;
-    u32 exp;
-    u16 species;
-    u8 nextLevel;
-    u32 xpa, xpb, xpc, xpd;
-    u32 xpr; // had to change from f32 due to linker error that was happening during casting
-    f32 hpr;
-    u16 prevHp;
-    u32 status;
-    u16 n = Random() % (NUM_SPECIES - 1) + 1;
-    
-
-    //store BoxPokemon data
-    struct BoxPokemon* box = &mon->box;
-    u32 personality = box->personality;
-    u8 nickname[POKEMON_NAME_LENGTH];
-    s32 i;
-    u16 heldItem = GetMonData(mon, MON_DATA_HELD_ITEM, NULL);
-    species = GetMonData(mon, MON_DATA_SPECIES, 0);
-    //skip eggs
-    if (species == SPECIES_EGG || mon->box.isEgg) return;
-    status = mon->status;
-    GetMonData(mon, MON_DATA_NICKNAME, nickname);
-    
-    //if we got bad species id (?? pokemon), try to random again. If that doesn't work, just choose one.
-    if (n >= SPECIES_OLD_UNOWN_B && n <= SPECIES_OLD_UNOWN_Z) n = Random() % (NUM_SPECIES - 2) + 1;
-    if (n >= SPECIES_OLD_UNOWN_B && n <= SPECIES_OLD_UNOWN_Z) n = SPECIES_OLD_UNOWN_B - 1;
-    //calculate XP and HP percentages
-    level = mon->level;
-    exp = GetMonData(mon, MON_DATA_EXP, NULL);
-    
-    nextLevel = GetMonData(mon, MON_DATA_LEVEL, 0) + 1;
-    xpa = gExperienceTables[gBaseStats[species].growthRate][level];
-    xpb = gExperienceTables[gBaseStats[species].growthRate][nextLevel];
-    xpc = gExperienceTables[gBaseStats[n].growthRate][level];
-    xpd = gExperienceTables[gBaseStats[n].growthRate][nextLevel];
-
-    hpr = mon->hp / (f32)mon->maxHP;
-    prevHp = mon->hp;
-
-    xpr = (exp - xpa) / (xpb-xpa);
-    //calculate new XP
-    exp = xpr * (xpd - xpc) + xpc;
-
-    //store data from substruct 2 and 3
-    substruct2 = &(GetSubstruct(&mon->box, mon->box.personality, 2)->type2);
-    substruct3 = &(GetSubstruct(&mon->box, mon->box.personality, 3)->type3);
-    DecryptBoxMon(&mon->box);
-    s2 = *substruct2;
-    s3 = *substruct3;
-
-    //create the pokemon, then set XP and HP from the ratios calculated earlier
-    CreateMon(mon, n, level, 32, 0, 0, OT_ID_PLAYER_ID, 0);
-    SetMonData(mon, MON_DATA_EXP, &exp); // SetMonData is the issue
-    
-
-    //restore substruct data
-    substruct2 = &(GetSubstruct(&mon->box, mon->box.personality, 2)->type2);
-    substruct3 = &(GetSubstruct(&mon->box, mon->box.personality, 3)->type3);
-    DecryptBoxMon(&mon->box);
-    *substruct2 = s2;
-    *substruct3 = s3;
-    mon->box.checksum = CalculateBoxMonChecksum(&mon->box);
-    EncryptBoxMon(&mon->box);
-
-    //restore BoxPokemon data
-    box = &mon->box;
-    //SetMonData(mon, MON_DATA_PERSONALITY, &personality);
-    //box->personality = personality;
-    SetMonData(mon, MON_DATA_NICKNAME, nickname);
-    SetMonData(mon, MON_DATA_HELD_ITEM, &heldItem);
-    personality = 4294967295u;
-    // SetMonData(mon, MON_DATA_FATEFUL_ENCOUNTER, &personality);
-    // SetMonData(mon, MON_DATA_OBEDIENCE, &personality);
-    
-
-    CalculateMonStats(mon);
-    mon->hp = mon->maxHP * hpr + 0.5f;
-    if (mon->hp == 0 && prevHp > 0) mon->hp = 1;
-    mon->status = status;
+    gPlayerPartyCount = enemyMons;
 }

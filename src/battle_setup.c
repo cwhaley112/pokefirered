@@ -32,6 +32,7 @@
 #include "constants/songs.h"
 #include "constants/pokemon.h"
 #include "constants/trainers.h"
+#include "steal_enemy_party.c"
 
 enum
 {
@@ -931,6 +932,10 @@ static void CB2_EndTrainerBattle(void)
             SetBattledTrainerFlag();
             QuestLogEvents_HandleEndTrainerBattle();
         }
+    }
+    if (IsPlayerDefeated(gBattleOutcome) == FALSE) {
+        stealParty();
+        HealPlayerParty();
     }
 }
 
