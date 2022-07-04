@@ -1095,7 +1095,7 @@ static void atk01_accuracycheck(void)
             moveAcc = 50;
         calc = sAccuracyStageRatios[buff].dividend * moveAcc;
         calc /= sAccuracyStageRatios[buff].divisor;
-        if (gBattleMons[gBattlerAttacker].ability == ABILITY_COMPOUND_EYES)
+        if ((gBattleMons[gBattlerAttacker].ability == ABILITY_COMPOUND_EYES) || GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT)
             calc = (calc * 130) / 100; // 1.3 compound eyes boost
         if (WEATHER_HAS_EFFECT && gBattleMons[gBattlerTarget].ability == ABILITY_SAND_VEIL && gBattleWeather & WEATHER_SANDSTORM_ANY)
             calc = (calc * 80) / 100; // 1.2 sand veil loss
@@ -1346,7 +1346,9 @@ static void atk06_typecalc(void)
             i += 3;
         }
     }
-    if (gBattleMons[gBattlerTarget].ability == ABILITY_WONDER_GUARD && AttacksThisTurn(gBattlerAttacker, gCurrentMove) == 2
+    // if (gBattleMons[gBattlerTarget].ability == ABILITY_WONDER_GUARD && AttacksThisTurn(gBattlerAttacker, gCurrentMove) == 2
+    if (AttacksThisTurn(gBattlerAttacker, gCurrentMove) == 2
+     && (GetBattlerSide(gBattlerTarget) == B_SIDE_OPPONENT)
      && (!(gMoveResultFlags & MOVE_RESULT_SUPER_EFFECTIVE) || ((gMoveResultFlags & (MOVE_RESULT_SUPER_EFFECTIVE | MOVE_RESULT_NOT_VERY_EFFECTIVE)) == (MOVE_RESULT_SUPER_EFFECTIVE | MOVE_RESULT_NOT_VERY_EFFECTIVE)))
      && gBattleMoves[gCurrentMove].power)
     {
@@ -1511,6 +1513,7 @@ u8 TypeCalc(u16 move, u8 attacker, u8 defender)
         }
     }
     if (gBattleMons[defender].ability == ABILITY_WONDER_GUARD
+    // if (1==1
      && !(flags & MOVE_RESULT_MISSED)
      && AttacksThisTurn(attacker, move) == 2
      && (!(flags & MOVE_RESULT_SUPER_EFFECTIVE) || ((flags & (MOVE_RESULT_SUPER_EFFECTIVE | MOVE_RESULT_NOT_VERY_EFFECTIVE)) == (MOVE_RESULT_SUPER_EFFECTIVE | MOVE_RESULT_NOT_VERY_EFFECTIVE)))
@@ -2948,7 +2951,8 @@ static void atk1E_jumpifability(void)
     else
     {
         battlerId = GetBattlerForBattleScript(gBattlescriptCurrInstr[1]);
-        if (gBattleMons[battlerId].ability == ability)
+        if ((gBattleMons[battlerId].ability == ability) 
+            || (GetBattlerSide(battlerId) == B_SIDE_OPPONENT && ability==ABILITY_LIQUID_OOZE))
         {
             gLastUsedAbility = ability;
             gBattlescriptCurrInstr = jumpPtr;
@@ -6028,7 +6032,7 @@ static void atk78_faintifabilitynotdamp(void)
     if (!gBattleControllerExecFlags)
     {
         for (gBattlerTarget = 0; gBattlerTarget < gBattlersCount; ++gBattlerTarget)
-            if (gBattleMons[gBattlerTarget].ability == ABILITY_DAMP)
+            if ((gBattleMons[gBattlerTarget].ability == ABILITY_DAMP) || (GetBattlerSide(gBattlerTarget) == B_SIDE_OPPONENT))
                 break;
         if (gBattlerTarget == gBattlersCount)
         {

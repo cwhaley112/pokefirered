@@ -1731,6 +1731,11 @@ u8 AbilityBattleEffects(u8 caseID, u8 battler, u8 ability, u8 special, u16 moveA
                 }
                 break;
             }
+            if (!(gSpecialStatuses[battler].intimidatedMon))
+                {
+                    gStatuses3[battler] |= STATUS3_INTIMIDATE_POKES;//todo
+                    gSpecialStatuses[battler].intimidatedMon = 1;
+                }
             break;
         case ABILITYEFFECT_ENDTURN: // 1
             if (gBattleMons[battler].hp != 0)
@@ -1789,6 +1794,15 @@ u8 AbilityBattleEffects(u8 caseID, u8 battler, u8 ability, u8 special, u16 moveA
                     break;
                 }
             }
+            if (gBattleMons[battler].statStages[STAT_SPEED] < 0xC && gDisableStructs[battler].isFirstTurn != 2 && GetBattlerSide(battler) == B_SIDE_OPPONENT && gBattleMons[battler].ability != ABILITY_SPEED_BOOST)
+                {
+                    ++gBattleMons[battler].statStages[STAT_SPEED];
+                    gBattleScripting.animArg1 = 0x11;
+                    gBattleScripting.animArg2 = 0;
+                    BattleScriptPushCursorAndCallback(BattleScript_SpeedBoostActivates);
+                    gBattleScripting.battler = battler;
+                    ++effect;
+                }
             break;
         case ABILITYEFFECT_MOVES_BLOCK: // 2
             if (gLastUsedAbility == ABILITY_SOUNDPROOF)
@@ -1994,6 +2008,20 @@ u8 AbilityBattleEffects(u8 caseID, u8 battler, u8 ability, u8 special, u16 moveA
                 }
                 break;
             }
+            if (!(gMoveResultFlags & MOVE_RESULT_NO_EFFECT)
+                 && moveArg != MOVE_STRUGGLE
+                 && gBattleMoves[moveArg].power != 0
+                 && TARGET_TURN_DAMAGED
+                 && !IS_BATTLER_OF_TYPE(battler, moveType)
+                 && gBattleMons[battler].hp != 0
+                 && GetBattlerSide(gBattlerTarget) == B_SIDE_OPPONENT)
+                {
+                    SET_BATTLER_TYPE(battler, moveType);
+                    PREPARE_TYPE_BUFFER(gBattleTextBuff1, moveType);
+                    BattleScriptPushCursor();
+                    gBattlescriptCurrInstr = BattleScript_ColorChangeActivates;
+                    ++effect;
+                }
             break;
         case ABILITYEFFECT_IMMUNITY: // 5
             for (battler = 0; battler < gBattlersCount; ++battler)
@@ -2094,7 +2122,7 @@ u8 AbilityBattleEffects(u8 caseID, u8 battler, u8 ability, u8 special, u16 moveA
             }
             break;
         case ABILITYEFFECT_SYNCHRONIZE: // 7
-            if (gLastUsedAbility == ABILITY_SYNCHRONIZE && (gHitMarker & HITMARKER_SYNCHRONISE_EFFECT))
+            if ((gLastUsedAbility == ABILITY_SYNCHRONIZE || GetBattlerSide(battler) == B_SIDE_OPPONENT) && (gHitMarker & HITMARKER_SYNCHRONISE_EFFECT))
             {
                 gHitMarker &= ~(HITMARKER_SYNCHRONISE_EFFECT);
                 gBattleStruct->synchronizeMoveEffect &= ~(MOVE_EFFECT_AFFECTS_USER | MOVE_EFFECT_CERTAIN);
@@ -2126,7 +2154,8 @@ u8 AbilityBattleEffects(u8 caseID, u8 battler, u8 ability, u8 special, u16 moveA
         case ABILITYEFFECT_INTIMIDATE1: // 9
             for (i = 0; i < gBattlersCount; ++i)
             {
-                if (gBattleMons[i].ability == ABILITY_INTIMIDATE && gStatuses3[i] & STATUS3_INTIMIDATE_POKES)
+                // if ((gBattleMons[i].ability == ABILITY_INTIMIDATE || GetBattlerSide(battler) == B_SIDE_OPPONENT) && gStatuses3[i] & STATUS3_INTIMIDATE_POKES) // TODO
+                if ((gBattleMons[i].ability == ABILITY_INTIMIDATE || GetBattlerSide(i) == B_SIDE_OPPONENT) && gStatuses3[i] & STATUS3_INTIMIDATE_POKES)
                 {
                     gLastUsedAbility = ABILITY_INTIMIDATE;
                     gStatuses3[i] &= ~(STATUS3_INTIMIDATE_POKES);
