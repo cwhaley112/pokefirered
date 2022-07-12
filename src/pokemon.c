@@ -2408,7 +2408,8 @@ s32 CalculateBaseDamage(struct BattlePokemon *attacker, struct BattlePokemon *de
     if (attacker->ability == ABILITY_HUGE_POWER || attacker->ability == ABILITY_PURE_POWER || (GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT))
         attack *= 2;
     if (GetBattlerSide(gBattlerAttacker) == B_SIDE_PLAYER){
-        attack *=0.75;
+        attack *=0.375;
+        spAttack *=0.375;
     }
 
     // In FRLG, the Battle Tower and opponent checks are stubbed here.
@@ -2474,7 +2475,7 @@ s32 CalculateBaseDamage(struct BattlePokemon *attacker, struct BattlePokemon *de
         spAttack = (150 * spAttack) / 100;
     if (attacker->ability == ABILITY_MINUS && ABILITY_ON_FIELD2(ABILITY_PLUS))
         spAttack = (150 * spAttack) / 100;
-    if (attacker->ability == ABILITY_GUTS && attacker->status1)
+    if ((attacker->ability == ABILITY_GUTS || GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT) && attacker->status1)
         attack = (150 * attack) / 100;
     if (defender->ability == ABILITY_MARVEL_SCALE && defender->status1)
         defense = (150 * defense) / 100;

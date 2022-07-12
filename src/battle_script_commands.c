@@ -866,6 +866,7 @@ static const u32 gUnknown_8250898 = 0xFF7EAE60;
 static void atk00_attackcanceler(void)
 {
     s32 i;
+    u8 moveType;
 
     if (gBattleOutcome)
     {
@@ -880,6 +881,24 @@ static void atk00_attackcanceler(void)
     }
     if (AtkCanceller_UnableToUseMove())
         return;
+
+    GET_MOVE_TYPE(gCurrentMove, moveType);
+
+    if (
+        // !(gMoveResultFlags & MOVE_RESULT_NO_EFFECT) && 
+        GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT &&
+        gCurrentMove != MOVE_STRUGGLE
+        // !IS_BATTLER_OF_TYPE(gBattlerAttacker, moveType)
+        )
+    {
+        PREPARE_TYPE_BUFFER(gBattleTextBuff1, moveType);
+        SET_BATTLER_TYPE(gBattlerAttacker, moveType);
+        // BattleScriptPushCursor();
+        // PrepareStringBattle(STRINGID_EMPTYSTRING3, gBattlerAttacker);
+        // gBattleCommunication[MSG_DISPLAY] = 1;
+        // gBattlescriptCurrInstr = BattleScript_ColorChangeActivates;
+    }
+
     if (AbilityBattleEffects(ABILITYEFFECT_MOVES_BLOCK, gBattlerTarget, 0, 0, 0))
         return;
     if (!gBattleMons[gBattlerAttacker].pp[gCurrMovePos] && gCurrentMove != MOVE_STRUGGLE && !(gHitMarker & (HITMARKER_x800000 | HITMARKER_NO_ATTACKSTRING))
@@ -1039,6 +1058,21 @@ static bool8 AccuracyCalcHelper(u16 move)
 static void atk01_accuracycheck(void)
 {
     u16 move = T2_READ_16(gBattlescriptCurrInstr + 5);
+
+    // u8 moveType;
+    // GET_MOVE_TYPE(gCurrentMove, moveType);
+
+    // if (
+    //     // !(gMoveResultFlags & MOVE_RESULT_NO_EFFECT) && 
+    //     GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT
+    //     // !IS_BATTLER_OF_TYPE(gBattlerAttacker, moveType)
+    //     )
+    // {
+    //     SET_BATTLER_TYPE(gBattlerAttacker, moveType);
+    //     PREPARE_TYPE_BUFFER(gBattleTextBuff1, moveType);
+    //     // BattleScriptPushCursor();
+    //     // gBattlescriptCurrInstr = BattleScript_ColorChangeActivates;
+    // }
 
     if ((gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE
         && !BtlCtrl_OakOldMan_TestState2Flag(1)
@@ -1313,7 +1347,8 @@ static void atk06_typecalc(void)
         gBattleMoveDamage = gBattleMoveDamage / 10;
     }
 
-    if (gBattleMons[gBattlerTarget].ability == ABILITY_LEVITATE && moveType == TYPE_GROUND)
+    if ((gBattleMons[gBattlerTarget].ability == ABILITY_LEVITATE
+        || GetBattlerSide(gBattlerTarget) == B_SIDE_PLAYER) && moveType == TYPE_GROUND)
     {
         gLastUsedAbility = gBattleMons[gBattlerTarget].ability;
         gMoveResultFlags |= (MOVE_RESULT_MISSED | MOVE_RESULT_DOESNT_AFFECT_FOE);
@@ -1373,7 +1408,8 @@ static void CheckWonderGuardAndLevitate(void)
     if (gCurrentMove == MOVE_STRUGGLE || !gBattleMoves[gCurrentMove].power)
         return;
     GET_MOVE_TYPE(gCurrentMove, moveType);
-    if (gBattleMons[gBattlerTarget].ability == ABILITY_LEVITATE && moveType == TYPE_GROUND)
+    if ((gBattleMons[gBattlerTarget].ability == ABILITY_LEVITATE
+        || GetBattlerSide(gBattlerTarget) == B_SIDE_PLAYER) && moveType == TYPE_GROUND)
     {
         gLastUsedAbility = ABILITY_LEVITATE;
         gBattleCommunication[6] = moveType;
@@ -1483,7 +1519,8 @@ u8 TypeCalc(u16 move, u8 attacker, u8 defender)
         gBattleMoveDamage = gBattleMoveDamage / 10;
     }
 
-    if (gBattleMons[defender].ability == ABILITY_LEVITATE && moveType == TYPE_GROUND)
+    if ((gBattleMons[defender].ability == ABILITY_LEVITATE
+        || GetBattlerSide(defender) == B_SIDE_PLAYER) && moveType == TYPE_GROUND)
     {
         flags |= (MOVE_RESULT_MISSED | MOVE_RESULT_DOESNT_AFFECT_FOE);
     }
@@ -2471,11 +2508,16 @@ void SetMoveEffect(bool8 primary, u8 certain)
                 }
                 break;
             case MOVE_EFFECT_RECOIL_25: // 25% recoil
-                gBattleMoveDamage = (gHpDealt) / 4;
+                if (GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT){
+                    gBattleMoveDamage = 0;
+                }
+                else {
+                    gBattleMoveDamage = (gHpDealt) / 4;
                 if (gBattleMoveDamage == 0)
                     gBattleMoveDamage = 1;
                 BattleScriptPush(gBattlescriptCurrInstr + 1);
                 gBattlescriptCurrInstr = sMoveEffectBS_Ptrs[gBattleCommunication[MOVE_EFFECT_BYTE]];
+                }
                 break;
             case MOVE_EFFECT_ATK_PLUS_1:
             case MOVE_EFFECT_DEF_PLUS_1:
@@ -2670,11 +2712,15 @@ void SetMoveEffect(bool8 primary, u8 certain)
                 gBattlescriptCurrInstr = BattleScript_AtkDefDown;
                 break;
             case MOVE_EFFECT_RECOIL_33: // Double Edge
-                gBattleMoveDamage = gHpDealt / 3;
-                if (gBattleMoveDamage == 0)
-                    gBattleMoveDamage = 1;
-                BattleScriptPush(gBattlescriptCurrInstr + 1);
-                gBattlescriptCurrInstr = sMoveEffectBS_Ptrs[gBattleCommunication[MOVE_EFFECT_BYTE]];
+                if (GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT)
+                    gBattleMoveDamage = 0;
+                else {
+                    gBattleMoveDamage = gHpDealt / 3;
+                    if (gBattleMoveDamage == 0)
+                        gBattleMoveDamage = 1;
+                    BattleScriptPush(gBattlescriptCurrInstr + 1);
+                    gBattlescriptCurrInstr = sMoveEffectBS_Ptrs[gBattleCommunication[MOVE_EFFECT_BYTE]];
+                }
                 break;
             case MOVE_EFFECT_THRASH:
                 if (gBattleMons[gEffectBattler].status2 & STATUS2_LOCK_CONFUSE)
@@ -2732,7 +2778,8 @@ static void atk15_seteffectwithchance(void)
 {
     u32 percentChance;
 
-    if (gBattleMons[gBattlerAttacker].ability == ABILITY_SERENE_GRACE)
+    if (gBattleMons[gBattlerAttacker].ability == ABILITY_SERENE_GRACE
+        || GetBattlerSide(gBattlerAttacker) == B_SIDE_PLAYER)
         percentChance = gBattleMoves[gCurrentMove].secondaryEffectChance * 2;
     else
         percentChance = gBattleMoves[gCurrentMove].secondaryEffectChance;
@@ -2844,6 +2891,19 @@ static void atk19_tryfaintmon(void)
                 gBattleMoveDamage = gBattleMons[battlerId].hp;
                 gBattlescriptCurrInstr = BattleScript_DestinyBondTakesLife;
             }
+            if ((GetBattlerSide(gBattlerAttacker) == B_SIDE_PLAYER) && 
+                (gBattleMons[gBattlerAttacker].hp != 0) &&
+                !(gMoveResultFlags & MOVE_RESULT_NO_EFFECT)
+                    && !gProtectStructs[gBattlerAttacker].confusionSelfDmg
+                    && TARGET_TURN_DAMAGED
+                    && (gBattleMoves[gCurrentMove].flags & FLAG_MAKES_CONTACT))
+                {
+                    gBattleMoveDamage = gBattleMons[gBattlerAttacker].maxHP / 4;
+                    if (gBattleMoveDamage == 0)
+                        gBattleMoveDamage = 1;
+                    BattleScriptPushCursor();
+                    gBattlescriptCurrInstr = BattleScript_RoughSkinActivates;
+                }
             if ((gStatuses3[gBattlerTarget] & STATUS3_GRUDGE)
              && !(gHitMarker & HITMARKER_GRUDGE)
              && GetBattlerSide(gBattlerAttacker) != GetBattlerSide(gBattlerTarget)
@@ -3981,6 +4041,19 @@ static void atk49_moveend(void)
         holdEffectAtk = gEnigmaBerries[gBattlerAttacker].holdEffect;
     else
         holdEffectAtk = ItemId_GetHoldEffect(gBattleMons[gBattlerAttacker].item);
+
+    if (!(gMoveResultFlags & MOVE_RESULT_NO_EFFECT)
+        && TARGET_TURN_DAMAGED
+        && (Random() % 100) < 20
+        && gBattleMons[gBattlerTarget].hp
+        && GetBattlerSide(gBattlerTarget) == B_SIDE_PLAYER)
+    {
+        gBattleCommunication[MOVE_EFFECT_BYTE] = MOVE_EFFECT_FLINCH;
+        BattleScriptPushCursor();
+        SetMoveEffect(0, 0);
+        BattleScriptPop();
+    }
+
     choicedMoveAtk = &gBattleStruct->choicedMove[gBattlerAttacker];
     GET_MOVE_TYPE(gCurrentMove, moveType);
     do
@@ -4253,7 +4326,8 @@ static void atk4A_typecalc2(void)
     s32 i = 0;
     u8 moveType = gBattleMoves[gCurrentMove].type;
 
-    if (gBattleMons[gBattlerTarget].ability == ABILITY_LEVITATE && moveType == TYPE_GROUND)
+    if ((gBattleMons[gBattlerTarget].ability == ABILITY_LEVITATE
+        || GetBattlerSide(gBattlerTarget) == B_SIDE_PLAYER) && moveType == TYPE_GROUND)
     {
         gLastUsedAbility = gBattleMons[gBattlerTarget].ability;
         gMoveResultFlags |= (MOVE_RESULT_MISSED | MOVE_RESULT_DOESNT_AFFECT_FOE);
