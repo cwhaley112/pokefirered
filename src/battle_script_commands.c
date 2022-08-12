@@ -907,7 +907,7 @@ static void atk00_attackcanceler(void)
         }
     }
     gHitMarker |= HITMARKER_OBEYS;
-    if ((gProtectStructs[gBattlerTarget].bounceMove || GetBattlerSide(gBattlerTarget) == B_SIDE_OPPONENT) && gBattleMoves[gCurrentMove].flags & FLAG_MAGICCOAT_AFFECTED)
+    if (gProtectStructs[gBattlerTarget].bounceMove && gBattleMoves[gCurrentMove].flags & FLAG_MAGICCOAT_AFFECTED)
     {
         PressurePPLose(gBattlerAttacker, gBattlerTarget, MOVE_MAGIC_COAT);
         gProtectStructs[gBattlerTarget].bounceMove = FALSE;
@@ -1095,7 +1095,7 @@ static void atk01_accuracycheck(void)
             moveAcc = 50;
         calc = sAccuracyStageRatios[buff].dividend * moveAcc;
         calc /= sAccuracyStageRatios[buff].divisor;
-        if ((gBattleMons[gBattlerAttacker].ability == ABILITY_COMPOUND_EYES) || GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT)
+        if (gBattleMons[gBattlerAttacker].ability == ABILITY_COMPOUND_EYES)// || GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT)
             calc = (calc * 130) / 100; // 1.3 compound eyes boost
         if (WEATHER_HAS_EFFECT && gBattleMons[gBattlerTarget].ability == ABILITY_SAND_VEIL && gBattleWeather & WEATHER_SANDSTORM_ANY)
             calc = (calc * 80) / 100; // 1.2 sand veil loss
@@ -2951,8 +2951,8 @@ static void atk1E_jumpifability(void)
     else
     {
         battlerId = GetBattlerForBattleScript(gBattlescriptCurrInstr[1]);
-        if ((gBattleMons[battlerId].ability == ability) 
-            || (GetBattlerSide(battlerId) == B_SIDE_OPPONENT && ability==ABILITY_LIQUID_OOZE))
+        if (gBattleMons[battlerId].ability == ability) 
+            // || (GetBattlerSide(battlerId) == B_SIDE_OPPONENT && ability==ABILITY_LIQUID_OOZE))
         {
             gLastUsedAbility = ability;
             gBattlescriptCurrInstr = jumpPtr;
