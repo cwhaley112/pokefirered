@@ -926,7 +926,7 @@ static void atk00_attackcanceler(void)
         }
     }
     gHitMarker |= HITMARKER_OBEYS;
-    if (gProtectStructs[gBattlerTarget].bounceMove && gBattleMoves[gCurrentMove].flags & FLAG_MAGICCOAT_AFFECTED)
+    if ((gProtectStructs[gBattlerTarget].bounceMove  || GetBattlerSide(gBattlerTarget) == B_SIDE_OPPONENT) && gBattleMoves[gCurrentMove].flags & FLAG_MAGICCOAT_AFFECTED)
     {
         PressurePPLose(gBattlerAttacker, gBattlerTarget, MOVE_MAGIC_COAT);
         gProtectStructs[gBattlerTarget].bounceMove = FALSE;
@@ -1181,7 +1181,9 @@ static void atk02_attackstring(void)
  static void atk03_ppreduce(void)
 {
     s32 ppToDeduct = 1;
-
+    if (GetBattlerSide(gBattlerTarget)==B_SIDE_OPPONENT
+        && gBattleMons[gBattlerTarget].ability != ABILITY_PRESSURE)
+        ppToDeduct++;
     if (!gBattleControllerExecFlags)
     {
         if (!gSpecialStatuses[gBattlerAttacker].ppNotAffectedByPressure)
@@ -1348,7 +1350,7 @@ static void atk06_typecalc(void)
     }
 
     if ((gBattleMons[gBattlerTarget].ability == ABILITY_LEVITATE
-        || GetBattlerSide(gBattlerTarget) == B_SIDE_PLAYER) && moveType == TYPE_GROUND)
+        || GetBattlerSide(gBattlerTarget) == B_SIDE_OPPONENT) && moveType == TYPE_GROUND)
     {
         gLastUsedAbility = gBattleMons[gBattlerTarget].ability;
         gMoveResultFlags |= (MOVE_RESULT_MISSED | MOVE_RESULT_DOESNT_AFFECT_FOE);
@@ -2508,7 +2510,8 @@ void SetMoveEffect(bool8 primary, u8 certain)
                 }
                 break;
             case MOVE_EFFECT_RECOIL_25: // 25% recoil
-                if (GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT){
+                if (GetBattlerSide(gBattlerAttacker) == B_SIDE_OPPONENT
+                    && gCurrentMove != MOVE_STRUGGLE){
                     gBattleMoveDamage = 0;
                 }
                 else {
@@ -3954,6 +3957,7 @@ static void atk48_playstatchangeanimation(void)
                 }
                 else if (!gSideTimers[GET_BATTLER_SIDE(gActiveBattler)].mistTimer
                         && gBattleMons[gActiveBattler].ability != ABILITY_CLEAR_BODY
+                        && GetBattlerSide(gActiveBattler) != B_SIDE_OPPONENT
                         && gBattleMons[gActiveBattler].ability != ABILITY_WHITE_SMOKE
                         && !(gBattleMons[gActiveBattler].ability == ABILITY_KEEN_EYE && currStat == STAT_ACC)
                         && !(gBattleMons[gActiveBattler].ability == ABILITY_HYPER_CUTTER && currStat == STAT_ATK))
@@ -6371,7 +6375,8 @@ static void atk84_jumpifcantmakeasleep(void)
         gBattlescriptCurrInstr = jumpPtr;
     }
     else if (gBattleMons[gBattlerTarget].ability == ABILITY_INSOMNIA
-          || gBattleMons[gBattlerTarget].ability == ABILITY_VITAL_SPIRIT)
+          || gBattleMons[gBattlerTarget].ability == ABILITY_VITAL_SPIRIT
+          || GetBattlerSide(gBattlerTarget) == B_SIDE_OPPONENT)
     {
         gLastUsedAbility = gBattleMons[gBattlerTarget].ability;
         gBattleCommunication[MULTISTRING_CHOOSER] = 2;
@@ -6513,7 +6518,8 @@ static u8 ChangeStatBuffs(s8 statValue, u8 statId, u8 flags, const u8 *BS_ptr)
             return STAT_CHANGE_DIDNT_WORK;
         }
         else if ((gBattleMons[gActiveBattler].ability == ABILITY_CLEAR_BODY
-                  || gBattleMons[gActiveBattler].ability == ABILITY_WHITE_SMOKE)
+                  || gBattleMons[gActiveBattler].ability == ABILITY_WHITE_SMOKE
+                  || GetBattlerSide(gActiveBattler) == B_SIDE_OPPONENT)
               && !certain
               && gCurrentMove != MOVE_CURSE)
         {

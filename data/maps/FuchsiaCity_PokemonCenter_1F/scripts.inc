@@ -16,6 +16,7 @@ FuchsiaCity_PokemonCenter_1F_EventScript_Nurse:: @ 816D700
 
 FuchsiaCity_PokemonCenter_1F_EventScript_Man:: @ 816D709
 	msgbox FuchsiaCity_PokemonCenter_1F_Text_CantBecomeGoodTrainerWithOneMon, MSGBOX_NPC
+	giveitem ITEM_RARE_CANDY, 99
 	end
 
 FuchsiaCity_PokemonCenter_1F_EventScript_CooltrainerF:: @ 816D712

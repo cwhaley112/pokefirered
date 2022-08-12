@@ -16,6 +16,13 @@ PokemonLeague_AgathasRoom_OnLoad:: @ 8162830
 	call_if_eq PokemonLeague_AgathasRoom_EventScript_CloseEntry
 	end
 
+PokemonLeague_AgathasRoom_EventScript_RareCandyAgatha::
+	giveitem ITEM_RARE_CANDY, 99
+	warp MAP_POKEMON_LEAGUE_LANCES_ROOM, 255, 26, 11
+	end
+
+
+
 PokemonLeague_AgathasRoom_EventScript_CloseEntry:: @ 8162845
 	call PokemonLeague_EventScript_CloseEntry
 	return

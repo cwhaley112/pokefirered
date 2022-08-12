@@ -79,7 +79,7 @@ void PressurePPLose(u8 target, u8 attacker, u16 move)
 {
     s32 i;
 
-    if (gBattleMons[target].ability == ABILITY_PRESSURE)
+    if (gBattleMons[target].ability == ABILITY_PRESSURE || GetBattlerSide(attacker) == B_SIDE_PLAYER)
     {
         for (i = 0; i < MAX_MON_MOVES && gBattleMons[attacker].moves[i] != move; ++i);
         if (i != MAX_MON_MOVES)
